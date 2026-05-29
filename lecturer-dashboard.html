@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mzuzu University - Lecturer Portal</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,'Segoe UI',Roboto,sans-serif}
+        body{background:#f0f4f8;padding-bottom:40px}
+        .navbar{background:#0a2b3e;color:white;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        .logo{font-size:1.3rem;font-weight:bold}
+        .logo span{color:#fdbb4d}
+        .user-info{display:flex;gap:15px;align-items:center;flex-wrap:wrap}
+        .profile-pic-small{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#2c7da0;cursor:pointer}
+        .badge{background:#fdbb4d;color:#0a2b3e;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold}
+        .logout-btn{background:#dc2626;border:none;padding:8px 20px;border-radius:40px;color:white;cursor:pointer}
+        .container{max-width:1000px;margin:24px auto;padding:0 20px}
+        .create-post{background:white;border-radius:24px;padding:24px;margin-bottom:30px}
+        .create-post h3{color:#0a2b3e;margin-bottom:15px}
+        .post-title input,.post-content textarea{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:14px;font-size:14px;margin-bottom:15px}
+        .post-content textarea{min-height:100px}
+        .media-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+        .media-btn{background:#e2e8f0;border:none;padding:10px 18px;border-radius:40px;cursor:pointer;font-size:13px;font-weight:600}
+        .media-btn.voice{background:#8b5cf6;color:white}
+        .media-btn.video{background:#ef4444;color:white}
+        .media-btn.doc{background:#3b82f6;color:white}
+        .media-btn.image{background:#10b981;color:white}
+        .submit-post{background:#0a2b3e;color:white;border:none;padding:12px 24px;border-radius:40px;cursor:pointer;font-weight:bold}
+        .posts-container{background:white;border-radius:24px;padding:24px}
+        .post-card{border:1px solid #e2e8f0;border-radius:20px;padding:20px;margin-bottom:20px}
+        .post-header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+        .post-lecturer-name{font-weight:bold;color:#0a2b3e}
+        .post-date{font-size:11px;color:#94a3b8}
+        .post-title{font-size:1.2rem;font-weight:bold;color:#1a4a6f;margin:12px 0 8px}
+        .post-content{color:#334155;line-height:1.5;margin-bottom:12px}
+        .post-media{margin:12px 0}
+        .delete-post{background:#dc2626;color:white;border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;margin-top:10px}
+        .empty-state{text-align:center;padding:40px;color:#94a3b8}
+        .media-preview{background:#f0f4f8;padding:10px;border-radius:12px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center}
+        .clear-media{background:#dc2626;color:white;border:none;padding:4px 10px;border-radius:20px;cursor:pointer;font-size:11px}
+    </style>
+</head>
+<body>
+    <div class="navbar"><div class="logo">🎓 Mzuzu University <span>Lecturer Portal</span></div><div class="user-info"><span class="badge" id="programBadge">Loading...</span><span class="badge">Year <span id="levelBadge">-</span></span><img id="profilePic" class="profile-pic-small" src="" onclick="uploadProfilePic()"><button class="logout-btn" onclick="logout()">Logout</button></div></div>
+    <div class="container"><div class="create-post"><h3>📝 Create New Announcement</h3><div class="post-title"><input type="text" id="postTitle" placeholder="Title"></div><div class="post-content"><textarea id="postContent" placeholder="Write your announcement here..."></textarea></div><div class="media-buttons"><button class="media-btn voice" onclick="uploadVoice()">🎙️ Voice</button><button class="media-btn video" onclick="uploadVideo()">🎥 Video</button><button class="media-btn doc" onclick="uploadDocument()">📄 Document</button><button class="media-btn image" onclick="uploadImage()">🖼️ Image</button></div><div id="mediaPreview"></div><button class="submit-post" onclick="createPost()">📢 Post Announcement</button></div>
+    <div class="posts-container"><h3>📢 Your Announcements</h3><div id="postsList"><div class="empty-state">Loading...</div></div></div></div>
+    <script>
+        var currentUser=null,pendingMedia=null;
+        try{currentUser=JSON.parse(localStorage.getItem('currentUser'));if(!currentUser||currentUser.role!=='lecturer')window.location.href='login.html';}catch(e){window.location.href='login.html';}
+        document.getElementById('programBadge').innerHTML=currentUser.programCode;document.getElementById('levelBadge').innerHTML=currentUser.level;if(currentUser.profilePic)document.getElementById('profilePic').src=currentUser.profilePic;
+        function uploadProfilePic(){var input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async function(e){var file=e.target.files[0];var formData=new FormData();formData.append('profilePic',file);var res=await fetch('/api/upload-profile-pic/'+currentUser.id,{method:'POST',body:formData});var data=await res.json();if(data.success){currentUser.profilePic=data.fileUrl;document.getElementById('profilePic').src=data.fileUrl;localStorage.setItem('currentUser',JSON.stringify(currentUser));}};input.click();}
+        function uploadVoice(){var input=document.createElement('input');input.type='file';input.accept='audio/*';input.onchange=async function(e){var file=e.target.files[0];var formData=new FormData();formData.append('voice',file);var res=await fetch('/api/upload-voice',{method:'POST',body:formData});var data=await res.json();if(data.success){pendingMedia={type:'voice',url:data.fileUrl};document.getElementById('mediaPreview').innerHTML='<div class="media-preview"><span>🎙️ Voice attached</span><button class="clear-media" onclick="clearMedia()">Remove</button></div>';}};input.click();}
+        function uploadVideo(){var input=document.createElement('input');input.type='file';input.accept='video/*';input.onchange=async function(e){var file=e.target.files[0];var formData=new FormData();formData.append('video',file);var res=await fetch('/api/upload-video',{method:'POST',body:formData});var data=await res.json();if(data.success){pendingMedia={type:'video',url:data.fileUrl};document.getElementById('mediaPreview').innerHTML='<div class="media-preview"><span>🎥 Video attached</span><button class="clear-media" onclick="clearMedia()">Remove</button></div>';}};input.click();}
+        function uploadDocument(){var input=document.createElement('input');input.type='file';input.accept='.pdf,.doc,.docx,.txt';input.onchange=async function(e){var file=e.target.files[0];var formData=new FormData();formData.append('document',file);var res=await fetch('/api/upload-document',{method:'POST',body:formData});var data=await res.json();if(data.success){pendingMedia={type:'document',url:data.fileUrl};document.getElementById('mediaPreview').innerHTML='<div class="media-preview"><span>📄 Document attached</span><button class="clear-media" onclick="clearMedia()">Remove</button></div>';}};input.click();}
+        function uploadImage(){var input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=async function(e){var file=e.target.files[0];var formData=new FormData();formData.append('postImage',file);var res=await fetch('/api/upload-post-image',{method:'POST',body:formData});var data=await res.json();if(data.success){pendingMedia={type:'image',url:data.fileUrl};document.getElementById('mediaPreview').innerHTML='<div class="media-preview"><span>🖼️ Image attached</span><button class="clear-media" onclick="clearMedia()">Remove</button></div>';}};input.click();}
+        function clearMedia(){pendingMedia=null;document.getElementById('mediaPreview').innerHTML='';}
+        async function createPost(){var title=document.getElementById('postTitle').value.trim();var content=document.getElementById('postContent').value.trim();if(!title||!content){alert('Please enter title and content');return;}var postData={lecturer_id:currentUser.id,program_code:currentUser.programCode,level:currentUser.level,title:title,content:content,post_type:pendingMedia?pendingMedia.type:'text',media_url:pendingMedia?pendingMedia.url:null,media_type:pendingMedia?pendingMedia.type:null};try{var res=await fetch('/api/posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(postData)});var data=await res.json();if(data.success){document.getElementById('postTitle').value='';document.getElementById('postContent').value='';clearMedia();loadPosts();}else{alert('Error');}}catch(e){alert('Error');}}
+        async function loadPosts(){try{var res=await fetch('/api/posts/'+currentUser.programCode+'/'+currentUser.level);var posts=await res.json();var container=document.getElementById('postsList');if(!posts.length){container.innerHTML='<div class="empty-state">📭 No posts yet</div>';return;}var html='';for(var i=0;i<posts.length;i++){var post=posts[i];html+='<div class="post-card"><div class="post-header"><div><div class="post-lecturer-name">'+escapeHtml(post.lecturer_name)+'</div><div class="post-date">📅 '+new Date(post.created_at).toLocaleString()+'</div></div></div><div class="post-title">'+escapeHtml(post.title)+'</div><div class="post-content">'+escapeHtml(post.content)+'</div>';if(post.media_url){html+='<div class="post-media">';if(post.media_type==='voice')html+='<audio controls src="'+post.media_url+'"></audio>';if(post.media_type==='video')html+='<video controls src="'+post.media_url+'" width="100%"></video>';if(post.media_type==='document')html+='<a href="'+post.media_url+'" target="_blank">📄 Download</a>';if(post.media_type==='image')html+='<img src="'+post.media_url+'" style="max-width:100%;border-radius:12px">';html+='</div>';}html+='<button class="delete-post" onclick="deletePost('+post.id+')">🗑️ Delete</button></div>';}container.innerHTML=html;}catch(e){document.getElementById('postsList').innerHTML='<div class="empty-state">⚠️ Error</div>';}}
+        async function deletePost(id){if(confirm('Delete this announcement?')){try{await fetch('/api/posts/'+id,{method:'DELETE'});loadPosts();}catch(e){alert('Error');}}}
+        function escapeHtml(str){if(!str)return '';return str.replace(/[&<>]/g,function(m){return m=='&'?'&amp;':m=='<'?'&lt;':'&gt;';});}
+        function logout(){localStorage.removeItem('currentUser');window.location.href='login.html';}
+        loadPosts();
+    </script>
+</body>
+</html>
